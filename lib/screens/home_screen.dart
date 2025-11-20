@@ -1,7 +1,9 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:garant_task/screens/result_screen.dart';
 import 'package:garant_task/services/data/questions_data.dart';
 import 'package:garant_task/widgets/answer_card_widget.dart';
 
@@ -19,12 +21,68 @@ class _QuizScreenState extends State<QuizScreen> {
   int score = 0;
   PageController pageController = PageController();
   ScrollController indicatorScrollController = ScrollController();
+  int second = 1200;
+  int secondtimer = 0;
+  bool isFinished = false;
+  bool isRunning = false;
+  Timer? timer;
+  double percent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    startTimer();
+  }
 
   @override
   void dispose() {
     pageController.dispose();
     indicatorScrollController.dispose();
+    timer?.cancel();
     super.dispose();
+  }
+
+  void startTimer() {
+    secondtimer = second;
+    if (isRunning) return;
+
+    setState(() {
+      isRunning = true;
+    });
+
+    timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (secondtimer > 0) {
+          secondtimer--;
+        } else {
+          isFinished = true;
+          isRunning = false;
+          timer.cancel();
+          setState(() {
+            percent = score / questions.length;
+          });
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) {
+                return ResultScreen(
+                  score: score,
+                  allTest: questions.length,
+                  ketganVaqti: formatTime(secondtimer),
+                  umumiyVaqt: formatTime(second),
+                  percent: percent,
+                );
+              },
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  String formatTime(int totalSeconds) {
+    int minutes = totalSeconds ~/ 60;
+    int seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   void scrollIndicatorToCurrentIndex() {
@@ -117,35 +175,104 @@ class _QuizScreenState extends State<QuizScreen> {
     return selectedAnswers.length == questions.length;
   }
 
-  void finishQuiz() {
-    if (!areAllQuestionsAnswered()) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Diqqat!'),
-          content: Text(
-            'Hamma savollarga javob berilmadi. Birinchi javobsiz savolga o\'tishni xohlaysizmi?',
+  void finishDialog() {
+    showDialog(
+      context: context,
+
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.question_mark, color: Colors.blue, size: 30),
+              SizedBox(height: 16),
+              Text(
+                "Haqiqatda ham testni yakunlashni xohlaysizmi?",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, fontSize: 18),
+              ),
+              SizedBox(height: 12),
+              Text(
+                "Belgilanmagan test javoblari xato deb hisobga olinadi",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        goToFirstUnansweredQuestion();
+                      },
+                      color: Color(0xfff1f3f7),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        "Qaytish",
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: CupertinoButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          percent = score / questions.length;
+                        });
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return ResultScreen(
+                                score: score,
+                                allTest: questions.length,
+                                ketganVaqti: formatTime(secondtimer),
+                                umumiyVaqt: formatTime(second),
+                                percent: percent,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      color: Colors.red,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        "Yakunlash",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Yo\'q'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                goToFirstUnansweredQuestion();
-              },
-              child: Text('Ha'),
-            ),
-          ],
         ),
-      );
-    } else {
-      // natijaga otish
-    }
+      ),
+    );
+  }
+
+  void hammaJavobBelgilangandagiFinish() {
+    setState(() {
+      percent = score / questions.length;
+    });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) {
+          return ResultScreen(
+            score: score,
+            allTest: questions.length,
+            ketganVaqti: formatTime(secondtimer),
+            umumiyVaqt: formatTime(second),
+            percent: percent,
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -153,11 +280,48 @@ class _QuizScreenState extends State<QuizScreen> {
     return Scaffold(
       backgroundColor: Color(0xffF1F3F7),
       appBar: AppBar(
-        title: const Text('Quiz App'),
+        flexibleSpace: Container(
+          margin: EdgeInsets.only(top: 25, right: 12, left: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  finishDialog();
+                },
+                child: Icon(Icons.logout, color: Colors.grey),
+              ),
+              Container(
+                alignment: Alignment.center,
+                height: 40,
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xfff1f3f7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(Icons.timer, color: Colors.blue),
+                    Text(formatTime(secondtimer)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         backgroundColor: Color(0xffF1F3F7),
 
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(60),
+          preferredSize: Size.fromHeight(100),
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: SingleChildScrollView(
@@ -195,30 +359,23 @@ class _QuizScreenState extends State<QuizScreen> {
                         scrollIndicatorToCurrentIndex();
                       });
                     },
-                    child: Stack(
+                    child: Column(
                       children: [
+                        isCurrent
+                            ? Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.blue,
+                                size: 30,
+                              )
+                            : SizedBox(height: 30),
                         Container(
                           width: 40,
                           height: 40,
                           margin: EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             color: indicatorColor,
-                            border: Border.all(
-                              color: isCurrent
-                                  ? Colors.blue
-                                  : Colors.grey[300]!,
-                              width: isCurrent ? 3 : 1,
-                            ),
+
                             borderRadius: BorderRadius.circular(8),
-                            boxShadow: isCurrent
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.blue.withOpacity(0.3),
-                                      blurRadius: 4,
-                                      spreadRadius: 1,
-                                    ),
-                                  ]
-                                : [],
                           ),
                           child: Center(
                             child: Text(
@@ -227,15 +384,12 @@ class _QuizScreenState extends State<QuizScreen> {
                                 color: indicatorColor == Colors.white
                                     ? Colors.black
                                     : Colors.white,
-                                fontWeight: isCurrent
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: isCurrent ? 16 : 14,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
                               ),
                             ),
                           ),
                         ),
-                        // Positioned(child: Icon(Icons.abc), top: -15),
                       ],
                     ),
                   );
@@ -250,7 +404,6 @@ class _QuizScreenState extends State<QuizScreen> {
         child: PageView.builder(
           itemCount: questions.length,
           controller: pageController,
-
           onPageChanged: (index) {
             setState(() {
               questionIndex = index;
@@ -263,45 +416,47 @@ class _QuizScreenState extends State<QuizScreen> {
             final currentQuestion = questions[index];
             final currentSelectedAnswer = selectedAnswers[index];
 
-            return Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.blue),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Savol ${index + 1}:",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22,
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Savol ${index + 1}:",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 22,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        currentQuestion.question,
-                        style: const TextStyle(fontSize: 21),
-                        textAlign: TextAlign.start,
-                      ),
-                    ],
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          currentQuestion.question,
+                          style: const TextStyle(fontSize: 21),
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(height: 12),
-                Expanded(
-                  child: ListView.builder(
+                  SizedBox(height: 12),
+
+                  ListView.builder(
                     shrinkWrap: true,
                     itemCount: currentQuestion.answers.length,
+                    physics: NeverScrollableScrollPhysics(),
                     itemBuilder: (context, answerIndex) {
                       String label = String.fromCharCode(65 + answerIndex);
                       return GestureDetector(
@@ -320,8 +475,9 @@ class _QuizScreenState extends State<QuizScreen> {
                       );
                     },
                   ),
-                ),
-              ],
+                  SizedBox(height: 36),
+                ],
+              ),
             );
           },
         ),
@@ -360,10 +516,14 @@ class _QuizScreenState extends State<QuizScreen> {
               height: 50,
               child: CupertinoButton(
                 onPressed: () {
-                  finishQuiz();
+                  areAllQuestionsAnswered()
+                      ? hammaJavobBelgilangandagiFinish()
+                      : null;
                 },
-                color: Colors.blue,
-                child: Text("Yakunlash"),
+                color: areAllQuestionsAnswered()
+                    ? Colors.blue
+                    : Colors.blue.withOpacity(0.3),
+                child: Text("Yakunlash", style: TextStyle(color: Colors.white)),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

@@ -2,13 +2,14 @@ import 'package:garant_task/services/models/question_model.dart';
 
 final List<QuestionModel> questions = [
   QuestionModel(
-    question: 'Test savolining matni',
+    question:
+        'Test savolining matni Test savolining matni Test savolining matni Test savolining matni',
     correctAnswerIndex: 0,
     answers: const [
-      'Birinchi variyant (togri javob)',
+      'Birinchi variyant (togri javob) Birinchi variyant (togri javob) Birinchi variyant (togri javob) Birinchi variyant (togri javob) Birinchi variyant (togri javob) Birinchi variyant (togri javob) Birinchi variyant (togri javob) ',
       'Ikiinchi variyant',
       'Uchinchi variyant',
-      'Tortinchi variyant',
+      'Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant Oxirgi variyant ',
     ],
   ),
   QuestionModel(

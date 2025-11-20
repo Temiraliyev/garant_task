@@ -11,11 +11,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: QuizScreen(),
-    );
+    return MaterialApp(debugShowCheckedModeBanner: false, home: QuizScreen());
   }
 }
